@@ -1,0 +1,51 @@
+:root{
+    --neon-text-color: rgb(56, 11, 60);
+}
+body {
+    background-image: linear-gradient(to right, rgb(21, 21, 21), rgb(23, 23, 23), rgb(28, 28, 28), rgb(33, 33, 33), rgb(38, 38, 38));
+    --lights:rgb(99, 42, 107);
+}
+@font-face {
+    font-family: neon;
+    src: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/707108/neon.ttf);
+}
+
+
+
+#remag {
+    height:1vh;
+    font-family: neon;
+    text-align:center;
+    margin-top: 5%;
+    font-size:14vh;
+    color:#ffffff;
+}
+
+.ppl {
+    position: center;
+    margin-top: 15%;
+    display:grid;
+    grid-template-columns: auto auto auto auto;
+    grid-template-rows:  325px 325px 325px;
+    justify-content: space-evenly;
+}
+.person{
+    border-radius: 25px;
+    width: 20vh;
+    height: 25vh;
+    box-shadow: 0 0 .5vw #1041FF, 0 0 .75vw #1041FF, 0 0 2.5vw #1041FF, 0 0 2.5vw #1041FF;
+}
+#name{
+  text-transform: uppercase;
+  text-align: center;
+  font-family: "Archivo", sans-serif;
+  color: #e6e6e6;
+}
+#status{
+  text-align: center;
+  margin-top: 70%;
+  font-size:2vh;
+  font-family: "Archivo", sans-serif;
+  color: #29fa79;
+}
+
