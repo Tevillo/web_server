@@ -1,6 +1,11 @@
+//use std::path::{Path, PathBuf};
+
 use axum::{
     Json, Router,
-    response::{Html, IntoResponse},
+    body::Body,
+    extract::Path,
+    http::StatusCode,
+    response::{Html, IntoResponse, Response},
     routing::get,
 };
 
@@ -31,6 +36,7 @@ fn route_base() -> Router {
         .route("/style/server.css", get(style_server))
         .route("/style/schedule.css", get(style_schedule))
         .route("/scripts/server.js", get(script_server))
+        .route("/public/images/{name}", get(images))
 }
 
 async fn handler_schedule() -> impl IntoResponse {
@@ -113,14 +119,41 @@ async fn handler_index() -> impl IntoResponse {
 async fn handler_server() -> impl IntoResponse {
     println!("--> - handler_server -");
 
+    let servers = vec![Server::Bedrock, Server::Java];
+
     let format = maud! {
         link rel="stylesheet" href=("style/server.css");
         script src="scripts/server.js" {}
-        div {
-            h1 { "Server" }
-            ul {
-                button id="bedrock" {" Bedrock "}
-                button id="java" {" Java "}
+        div .main {
+            @for server in servers.iter() {
+                @let dis = server.display();
+                @if server.is_online() {
+                    div .active {
+                        h1 { (dis) }
+                        div {
+                            img src="/public/images/minecraft.png" {}
+                        }
+                        img src="https://www.svgrepo.com/show/405751/green-circle.svg" width="15" {}
+                        span { " Online" }
+                        div {
+                            button id=(dis) value=1 { "Deactivate" }
+                        }
+                    }
+                } @else {
+                    div .inactive {
+                        h1 { (dis) }
+                        // img B&W
+                        div {
+                            img src="/public/images/minecraft.png" {}
+                        }
+
+                        img src="https://www.svgrepo.com/show/407314/red-circle.svg" width="15" {}
+                        span { " Offline" }
+                        div {
+                            button id=(dis) value=0 { "Activate" }
+                        }
+                    }
+                }
             }
         }
     }
@@ -168,6 +201,23 @@ async fn style_schedule() -> Css<&'static str> {
 async fn script_server() -> JavaScript<&'static str> {
     let server_script: &str = include_str!("../public/scripts/server.js");
     JavaScript(server_script)
+}
+
+async fn images(Path(p): Path<String>) -> impl IntoResponse {
+    println!("-> image handler {:?}", p);
+    let full_path = format!("public/images/{}", p);
+    println!("full path: {}", full_path);
+    let path = std::path::Path::new(&full_path);
+    let file = match tokio::fs::read(path).await {
+        Ok(file) => file,
+        Err(err) => return Err((StatusCode::NOT_FOUND, format!("File not found: {}", err))),
+    };
+    let mime = mime_guess::from_path(&path).first_or_octet_stream();
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", mime.as_ref())
+        .body(Body::from(file))
+        .unwrap())
 }
 
 struct People {
