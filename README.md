@@ -9,3 +9,4 @@
 [ ] Add Cooldown to Server
 [ ] Add ram counter to Server and only allow so much ram usage
 [ ] Only allow accepted users to deactivate servers
+[ ] Add ajax like function to live update server status
