@@ -1,5 +1,3 @@
-//use std::path::{Path, PathBuf};
-
 use axum::{
     Json, Router,
     body::Body,
@@ -119,38 +117,45 @@ async fn handler_index() -> impl IntoResponse {
 async fn handler_server() -> impl IntoResponse {
     println!("--> - handler_server -");
 
-    let servers = vec![Server::Bedrock, Server::Java];
+    let servers = [
+        Server::MinecraftBedrock,
+        Server::MinecraftVanilla,
+        Server::MinecraftAllTheMods,
+    ];
 
     let format = maud! {
         link rel="stylesheet" href=("style/server.css");
         script src="scripts/server.js" {}
         div .main {
             @for server in servers.iter() {
-                @let dis = server.display();
+                @let display = server.display();
+                @let name = server.name();
+                @let image = server.image();
+                @let port = server.port();
                 @if server.is_online() {
                     div .active {
-                        h1 { (dis) }
-                        div {
-                            img src="/public/images/minecraft.png" {}
+                        h1 { (name) }
+                        div .display {
+                            img src=(image) {}
                         }
                         img src="https://www.svgrepo.com/show/405751/green-circle.svg" width="15" {}
-                        span { " Online" }
+                        span { " Online At " (port) }
+
                         div {
-                            button id=(dis) value=1 { "Deactivate" }
+                            button id=(display) value=1 { "Deactivate" }
                         }
                     }
                 } @else {
                     div .inactive {
-                        h1 { (dis) }
-                        // img B&W
-                        div {
-                            img src="/public/images/minecraft.png" {}
+                        h1 { (name) }
+                        div .display {
+                            img src=(image) {}
                         }
 
                         img src="https://www.svgrepo.com/show/407314/red-circle.svg" width="15" {}
                         span { " Offline" }
                         div {
-                            button id=(dis) value=0 { "Activate" }
+                            button id=(display) value=0 { "Activate" }
                         }
                     }
                 }
@@ -172,8 +177,9 @@ async fn handler_server_put(payload: Json<ServerRequest>) -> impl IntoResponse {
     let action = &payload.action;
 
     let s = match server.as_str() {
-        "bedrock" => Server::Bedrock,
-        "java" => Server::Java,
+        "mc_bedrock" => Server::MinecraftBedrock,
+        "mc_java" => Server::MinecraftVanilla,
+        "mc_all_the_mods" => Server::MinecraftAllTheMods,
         _ => Server::Other,
     };
 
@@ -206,13 +212,12 @@ async fn script_server() -> JavaScript<&'static str> {
 async fn images(Path(p): Path<String>) -> impl IntoResponse {
     println!("-> image handler {:?}", p);
     let full_path = format!("public/images/{}", p);
-    println!("full path: {}", full_path);
     let path = std::path::Path::new(&full_path);
     let file = match tokio::fs::read(path).await {
         Ok(file) => file,
         Err(err) => return Err((StatusCode::NOT_FOUND, format!("File not found: {}", err))),
     };
-    let mime = mime_guess::from_path(&path).first_or_octet_stream();
+    let mime = mime_guess::from_path(path).first_or_octet_stream();
     Ok(Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", mime.as_ref())

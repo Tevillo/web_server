@@ -5,11 +5,11 @@ pub fn manipulate_server(s: Server, a: Action) -> Result<String, MyErr> {
         return Err(MyErr::NotImplemented);
     }
 
-    return match a {
+    match a {
         Action::Close => {
             s.kill();
             Ok(format!("{} closed", s.display()))
-        },
+        }
         Action::Restart => {
             s.kill();
             start_server(&s, &a)
@@ -21,14 +21,14 @@ pub fn manipulate_server(s: Server, a: Action) -> Result<String, MyErr> {
 
 fn start_server(s: &Server, a: &Action) -> Result<String, MyErr> {
     let cmd = format!(
-         // inital new line will clear terminal, last presses enter
-            "\ncd {} && bash -c \"exec -a {} sh run.sh\"\n",
-            s.dir(),
-            s.display()
-        );
+        // inital new line will clear terminal, last presses enter
+        "\ncd {} && bash -c \"exec -a {} sh run.sh\"\n",
+        s.dir(),
+        s.display()
+    );
 
-    check_screen(&s)?; // Creates Screen if one does not exist
-    return match Command::new("screen")
+    check_screen(s)?; // Creates Screen if one does not exist
+    match Command::new("screen")
         .arg("-r")
         .arg(s.screen())
         .arg("-X")
@@ -38,9 +38,8 @@ fn start_server(s: &Server, a: &Action) -> Result<String, MyErr> {
     {
         Ok(_) => Ok(format!("{} {} Succesfully", s.display(), a.display())),
         Err(_) => Err(MyErr::BuildErr),
-    };
+    }
 }
-
 
 fn check_screen(s: &Server) -> Result<(), MyErr> {
     let out = Command::new("screen").arg("-ls").output().unwrap().stdout;
@@ -64,8 +63,9 @@ pub enum MyErr {
 
 #[derive(PartialEq, Debug)]
 pub enum Server {
-    Bedrock,
-    Java,
+    MinecraftBedrock,
+    MinecraftVanilla,
+    MinecraftAllTheMods,
     Other,
 }
 
@@ -80,37 +80,72 @@ pub enum Action {
 impl Server {
     fn screen(&self) -> &str {
         match self {
-            Server::Bedrock => "bedrock_server",
-            Server::Java => "java_server",
+            Server::MinecraftBedrock => "bedrock_server",
+            Server::MinecraftVanilla => "java_server",
+            Server::MinecraftAllTheMods => "all_the_mods_server",
             Server::Other => "other_server",
         }
     }
     pub fn display(&self) -> &str {
         match self {
-            Server::Bedrock => "mc_bedrock",
-            Server::Java => "mc_java",
+            Server::MinecraftBedrock => "mc_bedrock",
+            Server::MinecraftVanilla => "mc_java",
+            Server::MinecraftAllTheMods => "mc_all_the_mods",
             Server::Other => "other",
         }
     }
     fn dir(&self) -> &str {
         match self {
-            Server::Bedrock => "~/bedrock_server",
-            Server::Java => "~/minecraft_server/main",
-            Server::Other => "~",
+            Server::MinecraftBedrock => "~/servers/bedrock",
+            Server::MinecraftVanilla => "~/servers/vanilla/main",
+            Server::MinecraftAllTheMods => "~/servers/all_the_mods",
+            Server::Other => "~/servers/other_server",
+        }
+    }
+    pub fn port(&self) -> i32 {
+        match self {
+            Server::MinecraftBedrock => 25566,
+            Server::MinecraftVanilla => 25565,
+            Server::MinecraftAllTheMods => 25567,
+            Server::Other => -1,
+        }
+    }
+    pub fn image(&self) -> &str {
+        match self {
+            Server::MinecraftBedrock => "/public/images/minecraft.png",
+            Server::MinecraftVanilla => "/public/images/minecraft.png",
+            Server::MinecraftAllTheMods => "/public/images/all_the_mods.png",
+            Server::Other => "/public/images/error.png",
+        }
+    }
+    pub fn name(&self) -> &str {
+        match self {
+            Server::MinecraftBedrock => "Bedrock",
+            Server::MinecraftVanilla => "Java",
+            Server::MinecraftAllTheMods => "All The Mods",
+            Server::Other => "Other",
         }
     }
     pub fn is_online(&self) -> bool {
-        let out = Command::new("pgrep").arg("-if").arg(format!("{} run.sh", self.display())).output().unwrap().stdout;
+        let out = Command::new("pgrep")
+            .arg("-if")
+            .arg(format!("{} run.sh", self.display()))
+            .output()
+            .unwrap()
+            .stdout;
         let out_string = String::from_utf8(out).unwrap_or_default();
-        return !out_string.is_empty() // True if exists, false if doesn't
+        !out_string.is_empty() // True if exists, false if doesn't
     }
     fn kill(&self) {
-        let _ = Command::new("pkill").arg("-if").arg(format!("{} run.sh", self.display())).output();
+        let _ = Command::new("pkill")
+            .arg("-if")
+            .arg(format!("{} run.sh", self.display()))
+            .output();
     }
 }
 
 impl Action {
-    fn display(&self) -> &str {        
+    fn display(&self) -> &str {
         match self {
             Action::Start => "Started",
             Action::Restart => "Restarted",
