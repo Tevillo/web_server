@@ -36,7 +36,7 @@ function get_action(button) {
 
 async function post_data(data) {
     try {
-        const response = await fetch("http://72.181.111.213:3000/server", {
+        const response = await fetch("https://72.181.111.213:3000/server", {
             // Replace with your server's URL
             method: "POST",
             headers: {

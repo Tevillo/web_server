@@ -1,5 +1,8 @@
 use std::process::Command;
 
+const TOLERABLE: u32 = 24;
+const COOLDOWN_TIME: u64 = 60 * 5;
+
 pub fn manipulate_server(s: Server, a: Action) -> Result<String, MyErr> {
     if s == Server::Other || a == Action::Other {
         return Err(MyErr::NotImplemented);
@@ -7,19 +10,29 @@ pub fn manipulate_server(s: Server, a: Action) -> Result<String, MyErr> {
 
     match a {
         Action::Close => {
+            if !s.is_cooling_down() {
+                return Err(MyErr::CooldownErr);
+            }
             s.kill();
             Ok(format!("{} closed", s.display()))
         }
-        Action::Restart => {
+        Action::Start => {
             s.kill();
             start_server(&s, &a)
         }
-        Action::Start => start_server(&s, &a),
         _ => Err(MyErr::NotImplemented),
     }
 }
 
 fn start_server(s: &Server, a: &Action) -> Result<String, MyErr> {
+    if s.overlaps() {
+        return Err(MyErr::PortErr);
+    }
+
+    if !ram_space(&s) {
+        return Err(MyErr::RamErr);
+    }
+
     let cmd = format!(
         // inital new line will clear terminal, last presses enter
         "\ncd {} && bash -c \"exec -a {} sh run.sh\"\n",
@@ -54,10 +67,33 @@ fn check_screen(s: &Server) -> Result<(), MyErr> {
     Ok(())
 }
 
+fn ram_space(new: &Server) -> bool {
+    let servers = get_all_servers();
+    let mut total_in_use = 0;
+    for s in servers {
+        if s.is_online() {
+            total_in_use += s.ram();
+        }
+    }
+    println!("Total RAM in use: {}", total_in_use);
+    !(total_in_use + new.ram() > TOLERABLE)
+}
+
+fn get_all_servers() -> Vec<Server> {
+    return vec![
+        Server::MinecraftBedrock,
+        Server::MinecraftVanilla,
+        Server::MinecraftAllTheMods,
+    ];
+}
+
 #[derive(Debug)]
 pub enum MyErr {
     BuildErr,
+    CooldownErr,
     ScreenErr,
+    PortErr,
+    RamErr,
     NotImplemented,
 }
 
@@ -72,7 +108,6 @@ pub enum Server {
 #[derive(PartialEq, Debug)]
 pub enum Action {
     Start,
-    Restart,
     Close,
     Other,
 }
@@ -104,9 +139,9 @@ impl Server {
     }
     pub fn port(&self) -> i32 {
         match self {
-            Server::MinecraftBedrock => 25566,
-            Server::MinecraftVanilla => 25565,
-            Server::MinecraftAllTheMods => 25567,
+            Server::MinecraftBedrock => 25565,
+            Server::MinecraftVanilla => 25567,
+            Server::MinecraftAllTheMods => 25566,
             Server::Other => -1,
         }
     }
@@ -126,6 +161,20 @@ impl Server {
             Server::Other => "Other",
         }
     }
+    fn overlaps(&self) -> bool {
+        match self {
+            //Server::MinecraftAllTheMods => return !Server::MinecraftBedrock.is_online(), // Example for same ports
+            _ => false,
+        }
+    }
+    fn ram(&self) -> u32 {
+        match self {
+            Server::MinecraftBedrock => 8,
+            Server::MinecraftVanilla => 12,
+            Server::MinecraftAllTheMods => 12,
+            Server::Other => 0,
+        }
+    }
     pub fn is_online(&self) -> bool {
         let out = Command::new("pgrep")
             .arg("-if")
@@ -135,6 +184,32 @@ impl Server {
             .stdout;
         let out_string = String::from_utf8(out).unwrap_or_default();
         !out_string.is_empty() // True if exists, false if doesn't
+    }
+    fn is_cooling_down(&self) -> bool {
+        // False if cooling down, True if ready
+        let out = Command::new("pgrep")
+            .arg("-if")
+            .arg(format!("{} run.sh", self.display()))
+            .output()
+            .unwrap()
+            .stdout;
+        let out_string = String::from_utf8(out).unwrap_or_default();
+        if out_string.is_empty() {
+            false // If not running, not cooling down
+        } else {
+            let pid = out_string.trim().parse::<u32>().unwrap_or_default();
+            let start_time = Command::new("ps")
+                .arg("-p")
+                .arg(pid.to_string())
+                .arg("-o")
+                .arg("etimes=")
+                .output()
+                .unwrap()
+                .stdout;
+            let start_minute = String::from_utf8(start_time).unwrap_or_default();
+            let m = start_minute.trim().parse::<u64>().unwrap_or_default();
+            m > COOLDOWN_TIME
+        }
     }
     fn kill(&self) {
         let _ = Command::new("pkill")
@@ -148,7 +223,6 @@ impl Action {
     fn display(&self) -> &str {
         match self {
             Action::Start => "Started",
-            Action::Restart => "Restarted",
             Action::Close => "Closed",
             Action::Other => "other",
         }

@@ -5,14 +5,8 @@
 #444444
 #c0fff4
 */
-body {
-    background-color: #c0cbff;
-}
-h1 {
-    color: #666666;
-}
-
 .main {
+    margin-top: 5vh;
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
@@ -36,12 +30,6 @@ h1 {
     width: 65%;
 }
 
-h1,
-p,
-span {
-    color: #ffc0cb;
-}
-
 .main span {
     font-size: 1vw;
 }
@@ -49,7 +37,7 @@ span {
     text-align: center;
     white-space: normal;
     overflow-wrap: break-word;
-    font-size: 5vw;
+    font-size: 4vw;
 }
 
 /* CSS */

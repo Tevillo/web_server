@@ -8,8 +8,11 @@ use axum::{
 };
 
 use axum_extra::response::{Css, JavaScript};
+use axum_server::tls_rustls::RustlsConfig;
 
-use hypertext::{GlobalAttributes, Renderable, html_elements, maud};
+use hypertext::prelude::*;
+use hypertext::{Buffer, Renderable, maud};
+
 use serde::Deserialize;
 
 mod back;
@@ -18,21 +21,34 @@ use crate::back::server::{Action, Server, manipulate_server};
 
 #[tokio::main]
 async fn main() {
-    println!("Hello, world!");
     let app = Router::new().merge(route_base());
+    let config = RustlsConfig::from_pem_file(
+        "/home/pborrego/cert/cert.pem",
+        "/home/pborrego/cert/key.pem",
+    )
+    .await
+    .expect("failed to load TLS config");
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    println!("Listening on http://{}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
+    // Define the address
+    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], 3000));
+    println!("Starting server at {:?}!", addr);
+
+    // Serve with HTTPS
+    axum_server::bind_rustls(addr, config)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
 
 fn route_base() -> Router {
     Router::new()
         .route("/", get(handler_index))
+        .route("/home", get(handler_index))
         .route("/schedule", get(handler_schedule))
         .route("/server", get(handler_server).post(handler_server_put))
         .route("/style/server.css", get(style_server))
         .route("/style/schedule.css", get(style_schedule))
+        .route("/style/base.css", get(style_base))
         .route("/scripts/server.js", get(script_server))
         .route("/public/images/{name}", get(images))
 }
@@ -40,6 +56,9 @@ fn route_base() -> Router {
 async fn handler_schedule() -> impl IntoResponse {
     println!("--> schedule_handler -");
 
+    let mut buffer = Buffer::new();
+
+    nav_bar("/schedule", &mut buffer).await;
     let ppls = vec![
         People {
             name: String::from("Nora"),
@@ -59,11 +78,11 @@ async fn handler_schedule() -> impl IntoResponse {
         },
         People {
             name: String::from("Seve"),
-            status: false,
+            status: true,
         },
         People {
             name: String::from("Brown"),
-            status: false,
+            status: true,
         },
         People {
             name: String::from("Simmons"),
@@ -78,40 +97,54 @@ async fn handler_schedule() -> impl IntoResponse {
             status: false,
         },
     ];
-    let format = maud! {
+    maud! {
         link rel="stylesheet" type="text/css" href=("style/schedule.css"); // class is . , id is #
-        h1 #remag {
-            "Remag"
-            div .ppl {
-                @for ppl in ppls.iter() {
-                    div .person {
-                        p #name {(ppl.name)}
-                        p #status {(ppl.status)}
+        div .ppl {
+            @for ppl in ppls.iter() {
+                div .person {
+                    p #name {(ppl.name)}
+                    @if ppl.status {
+                        p #status .available { "Active" }
+                    } @else {
+                        p #status .unavailable { "Inactive" }
                     }
                 }
-
             }
+
         }
     }
-    .render();
-    Html(format.into_inner())
+    .render_to(&mut buffer);
+    Html(buffer.rendered().into_inner())
 }
 
 async fn handler_index() -> impl IntoResponse {
     println!("--> - handler_index -");
 
-    let format = maud! {
-        link rel="stylesheet" href=("sytle/schedule.css");
-        div {
-            h1 { "Paul's Site" }
+    let mut buffer = Buffer::new();
+
+    nav_bar("/home", &mut buffer).await;
+
+    Html(buffer.rendered().into_inner())
+}
+
+async fn nav_bar(page: &str, buffer: &mut Buffer) {
+    let pages = ["/home", "/schedule", "/server"];
+    maud! {
+        link rel="stylesheet" href=("style/base.css");
+        div .navbar {
             ul {
-                li { a href="/server" {"Go To Server"} }
-                li { a href="/schedule" {"Go To Schedule"} }
+                @for p in pages.iter() {
+                    @let li = &p[1..p.len()];
+                    @if li == page {
+                        li .active { a href=(p) { (li) } }
+                    } @else {
+                        li { a href=(p) { (li) } }
+                    }
+                }
             }
         }
     }
-    .render();
-    Html(format.into_inner())
+    .render_to(buffer);
 }
 
 async fn handler_server() -> impl IntoResponse {
@@ -123,7 +156,11 @@ async fn handler_server() -> impl IntoResponse {
         Server::MinecraftAllTheMods,
     ];
 
-    let format = maud! {
+    let mut buffer = Buffer::new();
+
+    nav_bar("/server", &mut buffer).await;
+
+    maud! {
         link rel="stylesheet" href=("style/server.css");
         script src="scripts/server.js" {}
         div .main {
@@ -136,11 +173,10 @@ async fn handler_server() -> impl IntoResponse {
                     div .active {
                         h1 { (name) }
                         div .display {
-                            img src=(image) {}
+                            img src=(image);
                         }
-                        img src="https://www.svgrepo.com/show/405751/green-circle.svg" width="15" {}
+                        img src="https://www.svgrepo.com/show/405751/green-circle.svg" width="15";
                         span { " Online At " (port) }
-
                         div {
                             button id=(display) value=1 { "Deactivate" }
                         }
@@ -149,10 +185,9 @@ async fn handler_server() -> impl IntoResponse {
                     div .inactive {
                         h1 { (name) }
                         div .display {
-                            img src=(image) {}
+                            img src=(image);
                         }
-
-                        img src="https://www.svgrepo.com/show/407314/red-circle.svg" width="15" {}
+                        img src="https://www.svgrepo.com/show/407314/red-circle.svg" width="15";
                         span { " Offline" }
                         div {
                             button id=(display) value=0 { "Activate" }
@@ -162,8 +197,8 @@ async fn handler_server() -> impl IntoResponse {
             }
         }
     }
-    .render();
-    Html(format.into_inner())
+    .render_to(&mut buffer);
+    Html(buffer.rendered().into_inner())
 }
 
 #[derive(Debug, Deserialize)]
@@ -185,7 +220,6 @@ async fn handler_server_put(payload: Json<ServerRequest>) -> impl IntoResponse {
 
     let a = match action.as_str() {
         "start" => Action::Start,
-        "restart" => Action::Restart,
         "close" => Action::Close,
         _ => Action::Other,
     };
@@ -195,13 +229,18 @@ async fn handler_server_put(payload: Json<ServerRequest>) -> impl IntoResponse {
 }
 
 async fn style_server() -> Css<&'static str> {
-    let server_css: &str = include_str!("../public/css/server.css");
-    Css(server_css)
+    let css: &str = include_str!("../public/css/server.css");
+    Css(css)
 }
 
 async fn style_schedule() -> Css<&'static str> {
-    let server_css: &str = include_str!("../public/css/schedule.css");
-    Css(server_css)
+    let css: &str = include_str!("../public/css/schedule.css");
+    Css(css)
+}
+
+async fn style_base() -> Css<&'static str> {
+    let css: &str = include_str!("../public/css/base.css");
+    Css(css)
 }
 
 async fn script_server() -> JavaScript<&'static str> {
