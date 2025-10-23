@@ -97,6 +97,21 @@ pub enum MyErr {
     NotImplemented,
 }
 
+impl MyErr {
+    pub fn display(&self) -> String {
+        match self {
+            MyErr::BuildErr => String::from("Build error"),
+            MyErr::CooldownErr => {
+                String::from("Cannot deactivate server within cooldown period of 5 minutes")
+            }
+            MyErr::ScreenErr => String::from("Error Creating Screen"),
+            MyErr::PortErr => String::from("Port is already in use"),
+            MyErr::RamErr => String::from("Not enough RAM available on machine"),
+            MyErr::NotImplemented => String::from("Not implemented"),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug)]
 pub enum Server {
     MinecraftBedrock,
@@ -140,7 +155,7 @@ impl Server {
     pub fn port(&self) -> i32 {
         match self {
             Server::MinecraftBedrock => 25565,
-            Server::MinecraftVanilla => 25567,
+            Server::MinecraftVanilla => 25565,
             Server::MinecraftAllTheMods => 25566,
             Server::Other => -1,
         }

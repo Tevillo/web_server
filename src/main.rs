@@ -4,7 +4,7 @@ use axum::{
     extract::Path,
     http::StatusCode,
     response::{Html, IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
 };
 
 use axum_extra::response::{Css, JavaScript};
@@ -13,7 +13,7 @@ use axum_server::tls_rustls::RustlsConfig;
 use hypertext::prelude::*;
 use hypertext::{Buffer, Renderable, maud};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 mod back;
 
@@ -45,7 +45,8 @@ fn route_base() -> Router {
         .route("/", get(handler_index))
         .route("/home", get(handler_index))
         .route("/schedule", get(handler_schedule))
-        .route("/server", get(handler_server).post(handler_server_put))
+        .route("/server", get(handler_server).post(handler_server_post))
+        .route("/get_servers", post(get_servers))
         .route("/style/server.css", get(style_server))
         .route("/style/schedule.css", get(style_schedule))
         .route("/style/base.css", get(style_base))
@@ -99,18 +100,19 @@ async fn handler_schedule() -> impl IntoResponse {
     ];
     maud! {
         link rel="stylesheet" type="text/css" href=("style/schedule.css"); // class is . , id is #
-        div .ppl {
-            @for ppl in ppls.iter() {
-                div .person {
-                    p #name {(ppl.name)}
-                    @if ppl.status {
-                        p #status .available { "Active" }
-                    } @else {
-                        p #status .unavailable { "Inactive" }
+        body {
+            div #servers .main {
+                @for ppl in ppls.iter() {
+                    div .person {
+                        p .name {(ppl.name)}
+                        @if ppl.status {
+                            p #status .available { "Active" }
+                        } @else {
+                            p #status .unavailable { "Inactive" }
+                        }
                     }
                 }
             }
-
         }
     }
     .render_to(&mut buffer);
@@ -131,14 +133,16 @@ async fn nav_bar(page: &str, buffer: &mut Buffer) {
     let pages = ["/home", "/schedule", "/server"];
     maud! {
         link rel="stylesheet" href=("style/base.css");
-        div .navbar {
-            ul {
-                @for p in pages.iter() {
-                    @let li = &p[1..p.len()];
-                    @if li == page {
-                        li .active { a href=(p) { (li) } }
-                    } @else {
-                        li { a href=(p) { (li) } }
+        body {
+            div .navbar {
+                ul {
+                    @for p in pages.iter() {
+                        @let li = &p[1..p.len()];
+                        @if li == page {
+                            li .active { a href=(p) { (li) } }
+                        } @else {
+                            li { a href=(p) { (li) } }
+                        }
                     }
                 }
             }
@@ -147,53 +151,69 @@ async fn nav_bar(page: &str, buffer: &mut Buffer) {
     .render_to(buffer);
 }
 
-async fn handler_server() -> impl IntoResponse {
-    println!("--> - handler_server -");
-
+async fn get_servers() -> impl IntoResponse {
     let servers = [
         Server::MinecraftBedrock,
         Server::MinecraftVanilla,
         Server::MinecraftAllTheMods,
     ];
+    let ret = maud! {
+        @for server in servers.iter() {
+            @let display = server.display();
+            @let name = server.name();
+            @let image = server.image();
+            @let port = server.port();
+            @if server.is_online() {
+                div .active {
+                    h1 { (name) }
+                    div .display {
+                        img src=(image);
+                    }
+                    img src="https://www.svgrepo.com/show/405751/green-circle.svg" width="15";
+                    span { " Online At " (port) }
+                    div {
+                        button id=(display) value=1 { "Deactivate" }
+                    }
+                }
+            } @else {
+                div .inactive {
+                    h1 { (name) }
+                    div .display {
+                        img src=(image);
+                    }
+                    img src="https://www.svgrepo.com/show/407314/red-circle.svg" width="15";
+                    span { " Offline" }
+                    div {
+                        button id=(display) value=0 { "Activate" }
+                    }
+                }
+            }
+        }
+    }
+    .render();
+    Html(ret.into_inner())
+}
+
+async fn handler_server() -> impl IntoResponse {
+    println!("--> - handler_server -");
 
     let mut buffer = Buffer::new();
 
     nav_bar("/server", &mut buffer).await;
 
     maud! {
-        link rel="stylesheet" href=("style/server.css");
-        script src="scripts/server.js" {}
-        div .main {
-            @for server in servers.iter() {
-                @let display = server.display();
-                @let name = server.name();
-                @let image = server.image();
-                @let port = server.port();
-                @if server.is_online() {
-                    div .active {
-                        h1 { (name) }
-                        div .display {
-                            img src=(image);
-                        }
-                        img src="https://www.svgrepo.com/show/405751/green-circle.svg" width="15";
-                        span { " Online At " (port) }
-                        div {
-                            button id=(display) value=1 { "Deactivate" }
-                        }
-                    }
-                } @else {
-                    div .inactive {
-                        h1 { (name) }
-                        div .display {
-                            img src=(image);
-                        }
-                        img src="https://www.svgrepo.com/show/407314/red-circle.svg" width="15";
-                        span { " Offline" }
-                        div {
-                            button id=(display) value=0 { "Activate" }
-                        }
-                    }
-                }
+        head {
+            title { "Server Status" }
+            link rel="stylesheet" href=("style/server.css");
+            script src="scripts/server.js" {}
+        }
+        body {
+            div #servers .main { // Location for initial servers
+            }
+            div #popup .popup {
+                h2 #server-status { "" }
+                img #server-image src="";
+                button #go-back { "Ok" }
             }
         }
     }
@@ -207,7 +227,14 @@ struct ServerRequest {
     action: String,
 }
 
-async fn handler_server_put(payload: Json<ServerRequest>) -> impl IntoResponse {
+#[derive(Serialize)]
+struct ServerResponse {
+    error_msg: String,
+    server: String,
+    action: String,
+}
+
+async fn handler_server_post(payload: Json<ServerRequest>) -> Json<ServerResponse> {
     let server = &payload.server;
     let action = &payload.action;
 
@@ -226,6 +253,18 @@ async fn handler_server_put(payload: Json<ServerRequest>) -> impl IntoResponse {
 
     let res = manipulate_server(s, a);
     println!("server: {:?}, Action: {:?} | {:?}", server, action, res);
+    match res {
+        Ok(_) => Json(ServerResponse {
+            error_msg: "".to_string(),
+            action: action.clone(),
+            server: server.clone(),
+        }),
+        Err(e) => Json(ServerResponse {
+            error_msg: e.display(),
+            server: server.clone(),
+            action: action.clone(),
+        }),
+    }
 }
 
 async fn style_server() -> Css<&'static str> {
