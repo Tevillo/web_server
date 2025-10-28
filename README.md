@@ -22,7 +22,7 @@
 
 - [ ] Crontab to keep this alive
 - [ ] Cron to keep servers alive that are already alive
-- [ ] Split up html
+- [x] Split up html
 - [ ] Rust WASM
 
 ## Other Projects to add
