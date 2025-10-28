@@ -16,9 +16,16 @@
 [x] Add CSS to Server
 [x] Add ajax like function to live update server status
 [x] Custom Popups for errors and success messages
+[ ] Home Page
 
 ## Other
 
 [ ] Crontab to keep this alive
 [ ] Cron to keep servers alive that are already alive
 [ ] Split up html
+[ ] Rust WASM
+
+## Other Projects to add
+
+[ ] Headsup
+[ ] Photos
