@@ -1,65 +1,99 @@
-fn main() {
-    let x = String::from("Fri Oct 03 18:22:28 GMT-0500 (Central Daylight Time)");
-    let mut s = create_schedule(String::from("example"));
-    println!("{:?}", s.is_available(x.clone()));
-    s.add_time(4,1800,2000, String::from("Programming"));
-    println!("{:?}", s.is_available(x));
-}
+use std::collections::HashSet;
 
+/// Sched holds a name and holds activites of person during the 7 day week
 struct Sched {
-    times: Vec<Option<Vec<Time>>>,
-    name:  String,
+    /// Arr of Options
+    ///
+    /// None represents no activities on the day
+    /// Some<Vec<Activity>> holds the various activites designated to the day
+    ///
+    /// In this Sunday represents 0 and Saturday 6
+    week: [Option<Vec<Activity>>; 7],
+    /// Holds name of who the Sched belongs too
+    name: String,
 }
 
 impl Sched {
-    fn add_time(&mut self, day: usize, start: usize, end: usize, activity: String) {
-        if self.times[day].is_some() {
-            self.times[day].as_mut().unwrap().push( Time { start, end, activity});
-        } else {
-            self.times[day] = Some(vec!(Time{ start, end, activity }));
+    /// Create empty Sched. Needs String to assign name
+    fn new(name: String) -> Self {
+        Sched {
+            week: [None, None, None, None, None, None, None],
+            name,
         }
-
     }
-    fn is_available(&self, time: String) -> Option<&Time> {
-        let simple = create_time(time);
-        match self.times[simple.0].as_ref() {
-            Some(day) => {
-                for x in day {
-                    if x.start <= simple.1 && x.end >= simple.1 { return Some(x); }
+    /// Add one activity to schedule
+    /// Repeats for every day that is provided
+    ///
+    /// # Example
+    ///
+    /// let foo = Sched::new("foo");
+    /// let bar = Activity::new(0b0010101, 1200,1400, "Bar".to_string());
+    ///
+    /// // Add activity to sched on Sunday Tuesday Thursday
+    /// foo.add_activity(bar)
+    fn add_activity(&mut self, act: Activity) {
+        for day in act.days.iter() {
+            if self.week[*day].is_some() {
+                self.week[*day].as_mut().unwrap().push(act.clone());
+            } else {
+                self.week[*day] = Some(vec![act.clone()]);
+            }
+        }
+    }
+    /// Checks schedule to see if a new activity would conflict with existing schedule
+    ///
+    /// If there is no conflict then returns None
+    /// If there is a conflict then returns Some<HashSet<&Activity>> which is a set of all conflicts
+    fn conflicts(&self, act: Activity) -> Option<HashSet<&Activity>> {
+        let mut conflicts = HashSet::new();
+        for day in act.days.into_iter() {
+            if let Some(load) = self.week[day].as_ref() {
+                for x in load {
+                    if x.start <= act.start && x.end >= act.end {
+                        conflicts.insert(x);
+                    }
                 }
             }
-            None => return None,
         }
-        None
+        match conflicts.is_empty() {
+            true => None,
+            false => Some(conflicts),
+        }
     }
 }
 
-fn create_schedule(name: String) -> Sched {
-    Sched {
-        times: vec!(None, None, None, None, None),
-        name,
-    }
-}
-#[derive(Debug)]
-struct Time {
+/// Start and end is not smart as it is just literal military time
+/// This will allow for end - start != the amount of time between the two
+/// also can allow for time that does not make sense like 2500 and 1290
+///
+/// Title: name of activity
+/// Days: days of the week the activity is on
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+struct Activity {
     start: usize,
     end: usize,
-    activity: String,
+    title: String,
+    days: Vec<usize>,
 }
 
-fn create_time(js_output: String) -> (usize,usize) {
-    let vec_output = Vec::from(js_output);
-    let date = match vec_output[2] {
-        110 => 0,
-        101 => 1,
-        100 => 2,
-        117 => 3,
-        105 => 4,
-        _   => 5,
-    };
-    let mut t = vec_output[11..16].to_vec();
-    t.remove(2);
-    (date, t.iter().fold(0, |acc, &elem| acc * 10 + elem as usize - 48))
+impl Activity {
+    fn new(mut init_day: u8, start: usize, end: usize, title: String) -> Self {
+        let mut days = Vec::with_capacity(7);
+        let mut x = 0;
+        while init_day > 0 {
+            if init_day & 1 == 1 {
+                days.push(x);
+            }
+            init_day >>= 1;
+            x += 1;
+        }
+        Activity {
+            start,
+            end,
+            title,
+            days,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -68,17 +102,20 @@ mod tests {
 
     #[test]
     fn empty() {
-        let s = create_schedule(String::from("example"));
-        let x = String::from("Fri Oct 03 18:22:28 GMT-0500 (Central Daylight Time)");
-        assert!(s.is_available(x).is_none());
+        let s = Sched::new("Sample".to_string());
+        let empty = Activity::new(0, 0, 0, String::from("Empty"));
+        assert!(s.conflicts(empty).is_none());
     }
 
     #[test]
     fn unavailable() {
-        let mut s = create_schedule(String::from("example"));
-        let x = String::from("Fri Oct 03 18:22:28 GMT-0500 (Central Daylight Time)");
-        s.add_time(4,1800,2000,String::from("Programming"));
-        assert!(!s.is_available(x).is_some());
+        let mut s = Sched::new("Sample".to_string());
+        let x = Activity::new(0b1, 0000, 1200, String::from("Foo"));
+        s.add_activity(x);
+        let y = Activity::new(0b1, 0600, 1400, String::from("Bar"));
+        let res = y.clone();
+        let con = s.conflicts(y);
+        assert!(con.is_some());
+        assert!(con.unwrap().contains(&res));
     }
 }
-
