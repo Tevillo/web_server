@@ -1,31 +1,43 @@
 # TODO
+---
 
 ## Backend
 
-- [x] Add Server commands to code
-- [ ] Only allow accepted users to deactivate servers
-- [x] Add Cooldown to Server
-- [x] Add ram counter to Server and only allow so much ram usage
-- [x] Add Port Priority to Server
 - [x] Allow https
+- [ ] Server
+  - [x] Add Cooldown to Server
+  - [x] Add ram counter to Server and only allow so much ram usage
+  - [x] Add Port Priority to Server
+  - [ ] Only allow accepted users to deactivate servers
+  - [x] Add Server commands to server.rs
 - [ ] Implement Schedule
+    - [x] Rewrite Schedule For Input
+    - [ ] Add Popup To schedule_page.rs
+    - [ ] Add Post Function to schedule_page.rs
 
 ## Frontend
 
-- [x] Implement Form
-- [x] Add CSS to Server
 - [x] Add ajax like function to live update server status
-- [x] Custom Popups for errors and success messages
+- [x] Server
+  - [x] Implement Form
+  - [x] Add CSS to Server
+  - [x] Custom Popups for errors and success messages
+- [ ] Schedule
+  - [ ] Add Button for popup
+  - [ ] Add JS to post data to schedule
+  - [ ] Rewrite Schedule for actual response
 - [ ] Home Page
 
-## Other
+## Other Tasks
 
 - [ ] Crontab to keep this alive
 - [ ] Cron to keep servers alive that are already alive
 - [x] Split up html
 - [ ] Rust WASM
+- [x] Add Database
 
 ## Other Projects to add
 
 - [ ] Headsup
 - [ ] Photos
+- [ ] Flash Cards
