@@ -23,8 +23,13 @@ pub async fn style_base() -> Css<&'static str> {
 }
 
 pub async fn script_server() -> JavaScript<&'static str> {
-    let server_script: &str = include_str!("../../public/scripts/server.js");
-    JavaScript(server_script)
+    let script: &str = include_str!("../../public/scripts/server.js");
+    JavaScript(script)
+}
+
+pub async fn script_schedule() -> JavaScript<&'static str> {
+    let script: &str = include_str!("../../public/scripts/schedule.js");
+    JavaScript(script)
 }
 
 pub async fn images(Path(p): Path<String>) -> impl IntoResponse {

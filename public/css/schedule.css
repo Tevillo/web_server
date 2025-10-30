@@ -1,8 +1,3 @@
-@font-face {
-    font-family: neon;
-    src: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/707108/neon.ttf);
-}
-
 .person {
     border-radius: 25px;
     width: 15vw;
@@ -29,4 +24,99 @@
 }
 .unavailable {
     color: #e04a4a;
+}
+
+.popup {
+    display: none;
+    position: absolute;
+    top: 50vh;
+    left: 50vw;
+    width: 60vw;
+    height: 80vh;
+    color: #c0fff4;
+    background-color: #444444;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    transform: translate(-50%, -50%);
+}
+
+.popup h1 {
+    position: absolute;
+    top: 10px;
+}
+
+.item_container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 5%;
+    margin-bottom: 5%;
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: auto;
+}
+
+.collapsible-header {
+    width: 100%;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    background-color: #4caf50;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+.collapsible-header span {
+    padding-left: 10px;
+}
+
+.collapsible-header:hover {
+    background-color: #45a049;
+}
+
+.arrow {
+    transition: transform 0.3s ease;
+    font-size: 20px;
+}
+
+.arrow.rotated {
+    transform: rotate(180deg);
+}
+
+.collapsible-content {
+    max-height: 0;
+    width: 100%;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    background-color: #f9f9f9;
+}
+
+.collapsible-content.open {
+    max-height: 500px;
+}
+
+.content-inner {
+    padding: 20px;
+}
+
+.buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: absolute;
+    bottom: 0;
+    width: 90%;
+    left: 5%;
+}
+
+.buttons button {
+    padding: 10px 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
 }

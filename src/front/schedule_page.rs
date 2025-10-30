@@ -11,47 +11,23 @@ pub async fn get() -> impl IntoResponse {
     let mut buffer = Buffer::new();
 
     common::nav_bar("/schedule", &mut buffer).await;
-    let ppls = vec![
-        People {
-            name: String::from("Nora"),
-            status: false,
-        },
-        People {
-            name: String::from("Paul"),
-            status: false,
-        },
-        People {
-            name: String::from("Logan"),
-            status: false,
-        },
-        People {
-            name: String::from("Cisco"),
-            status: false,
-        },
-        People {
-            name: String::from("Seve"),
-            status: true,
-        },
-        People {
-            name: String::from("Brown"),
-            status: true,
-        },
-        People {
-            name: String::from("Simmons"),
-            status: false,
-        },
-        People {
-            name: String::from("Garret"),
-            status: false,
-        },
-        People {
-            name: String::from("Dave"),
-            status: false,
-        },
-    ];
+    let ppls = vec![People {
+        name: String::from("Nora"),
+        status: false,
+    }];
     maud! {
         link rel="stylesheet" type="text/css" href=("style/schedule.css"); // class is . , id is #
+        script src="scripts/schedule.js" {}
         body {
+            button id="add_person" { "Add A Schedule" }
+            div #popup .popup {
+                h1 .main { "Schedule Maker" }
+                div #item_container .item_container { }
+                div .buttons {
+                    button id="add_item" { "Add Item" }
+                    button onclick="submitForm()" { "Submit" }
+                }
+            }
             div #servers .main {
                 @for ppl in ppls.iter() {
                     div .person {

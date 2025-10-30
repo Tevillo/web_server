@@ -18,6 +18,8 @@ async fn main() {
     println!("Database Initialized");
 
     let app = route_all(db);
+
+    // Self signed certs
     let config = RustlsConfig::from_pem_file(
         "/home/pborrego/cert/cert.pem",
         "/home/pborrego/cert/key.pem",

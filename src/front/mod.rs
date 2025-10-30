@@ -24,5 +24,6 @@ pub fn route_elements() -> Router {
         .route("/style/schedule.css", get(elements::style_schedule))
         .route("/style/base.css", get(elements::style_base))
         .route("/scripts/server.js", get(elements::script_server))
+        .route("/scripts/schedule.js", get(elements::script_schedule))
         .route("/public/images/{name}", get(elements::images))
 }

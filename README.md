@@ -24,8 +24,12 @@
   - [x] Custom Popups for errors and success messages
 - [ ] Schedule
   - [ ] Add Button for popup
+    - [x] Create Popup
+    - [x] Add expanding and collapsing tabs
+    - [ ] Add form data
   - [ ] Add JS to post data to schedule
   - [ ] Rewrite Schedule for actual response
+  - [ ] Add display Schedule
 - [ ] Home Page
 
 ## Other Tasks
