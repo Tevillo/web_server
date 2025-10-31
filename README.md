@@ -45,3 +45,9 @@
 - [ ] Headsup
 - [ ] Photos
 - [ ] Flash Cards
+- [ ] Joint Email Receiver
+
+## Unrelated
+
+- [x] Look into zed configurations
+- [x] Look into zed keybindings
