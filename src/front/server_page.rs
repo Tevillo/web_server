@@ -58,6 +58,11 @@ pub async fn get() -> impl IntoResponse {
     println!("--> - server_get -");
 
     let mut buffer = Buffer::new();
+    let servers = [
+        Server::MinecraftBedrock,
+        Server::MinecraftVanilla,
+        Server::MinecraftAllTheMods,
+    ];
 
     common::nav_bar("/server", &mut buffer).await;
 
@@ -69,6 +74,37 @@ pub async fn get() -> impl IntoResponse {
         }
         body {
             div #servers .main { // Location for initial servers
+                @for server in servers.iter() {
+                    @let display = server.display();
+                    @let name = server.name();
+                    @let image = server.image();
+                    @let port = server.port();
+                    @if server.is_online() {
+                        div .active {
+                            h1 { (name) }
+                            div .display {
+                                img src=(image);
+                            }
+                            img src="https://www.svgrepo.com/show/405751/green-circle.svg" width="15";
+                            span { " Online At " (port) }
+                            div {
+                                button id=(display) value=1 { "Deactivate" }
+                            }
+                        }
+                    } @else {
+                        div .inactive {
+                            h1 { (name) }
+                            div .display {
+                                img src=(image);
+                            }
+                            img src="https://www.svgrepo.com/show/407314/red-circle.svg" width="15";
+                            span { " Offline" }
+                            div {
+                                button id=(display) value=0 { "Activate" }
+                            }
+                        }
+                    }
+                }
             }
             div #popup .popup {
                 h2 #server-status { "" }

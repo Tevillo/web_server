@@ -23,12 +23,13 @@
   - [x] Add CSS to Server
   - [x] Custom Popups for errors and success messages
 - [ ] Schedule
-  - [ ] Add Button for popup
+  - [x] Add Button for popup
     - [x] Create Popup
     - [x] Add expanding and collapsing tabs
-    - [ ] Add form data
-  - [ ] Add JS to post data to schedule
-  - [ ] Rewrite Schedule for actual response
+    - [x] Add form data
+  - [ ] Add JS to get data from form
+  - [x] Add JS to post data to schedule
+  - [x] Rewrite Schedule for actual response
   - [ ] Add display Schedule
 - [ ] Home Page
 
@@ -46,6 +47,7 @@
 - [ ] Photos
 - [ ] Flash Cards
 - [ ] Joint Email Receiver
+- [ ] Word of the day
 
 ## Unrelated
 

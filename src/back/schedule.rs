@@ -1,37 +1,41 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-/// Sched holds a name and holds activites of person during the 7 day week
-struct Sched {
+use chrono::{Datelike, Timelike};
+/// Schedule holds a name and holds activites of person during the 7 day week
+#[derive(Debug, Clone, PartialEq, bincode::Encode, bincode::Decode)]
+pub struct Schedule {
     /// Arr of Options
     ///
     /// None represents no activities on the day
-    /// Some<Vec<Activity>> holds the various activites designated to the day
+    /// `Some<Vec<Activity>>` holds the various activites designated to the day
     ///
     /// In this Sunday represents 0 and Saturday 6
-    week: [Option<Vec<Activity>>; 7],
-    /// Holds name of who the Sched belongs too
-    name: String,
+    pub week: [Option<Vec<Activity>>; 7],
+    /// Holds name of who the Schedule belongs too
+    pub name: String,
 }
 
-impl Sched {
-    /// Create empty Sched. Needs String to assign name
-    fn new(name: String) -> Self {
-        Sched {
+impl Schedule {
+    /// Create empty Schedule. Needs String to assign name
+    pub fn new(name: String) -> Self {
+        Schedule {
             week: [None, None, None, None, None, None, None],
             name,
         }
     }
-    /// Add one activity to schedule
+    /// Add one activity to Scheduleule
     /// Repeats for every day that is provided
     ///
     /// # Example
-    ///
-    /// let foo = Sched::new("foo");
+    /// ```
+    /// let foo = Schedule::new("foo");
     /// let bar = Activity::new(0b0010101, 1200,1400, "Bar".to_string());
     ///
-    /// // Add activity to sched on Sunday Tuesday Thursday
+    /// // Add activity to Schedule on Sunday Tuesday Thursday
     /// foo.add_activity(bar)
-    fn add_activity(&mut self, act: Activity) {
+    /// ```
+    pub fn add_activity(&mut self, act: Activity) {
         for day in act.days.iter() {
             if self.week[*day].is_some() {
                 self.week[*day].as_mut().unwrap().push(act.clone());
@@ -40,17 +44,19 @@ impl Sched {
             }
         }
     }
-    /// Checks schedule to see if a new activity would conflict with existing schedule
+    /// Checks Scheduleule to see if a new activity would conflict with existing Scheduleule
     ///
     /// If there is no conflict then returns None
     /// If there is a conflict then returns Some<HashSet<&Activity>> which is a set of all conflicts
     fn conflicts(&self, act: Activity) -> Option<HashSet<&Activity>> {
         let mut conflicts = HashSet::new();
-        for day in act.days.into_iter() {
-            if let Some(load) = self.week[day].as_ref() {
-                for x in load {
-                    if x.start <= act.start && x.end >= act.end {
-                        conflicts.insert(x);
+        for day in act.days.iter() {
+            if let Some(load) = self.week[*day].as_ref() {
+                for existing_act in load {
+                    if (act.start >= existing_act.start && act.start <= existing_act.end)
+                        || (act.end >= existing_act.start && act.end <= existing_act.end)
+                    {
+                        conflicts.insert(existing_act);
                     }
                 }
             }
@@ -60,6 +66,21 @@ impl Sched {
             false => Some(conflicts),
         }
     }
+    pub fn is_busy(&self) -> bool {
+        let current_time = chrono::offset::Local::now();
+        let current_day = (current_time.date_naive().weekday().number_from_sunday() - 1) as usize; // Aligns to current system
+        if self.week[current_day].is_none() {
+            return false;
+        }
+        let hour_minute: usize = (current_time.hour() * 100 + current_time.minute()) as usize;
+        let events = self.week[current_day].as_ref().unwrap();
+        for event in events {
+            if hour_minute >= event.start && hour_minute <= event.end {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 /// Start and end is not smart as it is just literal military time
@@ -68,16 +89,16 @@ impl Sched {
 ///
 /// Title: name of activity
 /// Days: days of the week the activity is on
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-struct Activity {
+#[derive(Hash, Debug, Clone, PartialEq, Eq, bincode::Encode, bincode::Decode)]
+pub struct Activity {
+    title: String,
     start: usize,
     end: usize,
-    title: String,
     days: Vec<usize>,
 }
 
 impl Activity {
-    fn new(mut init_day: u8, start: usize, end: usize, title: String) -> Self {
+    pub fn new(title: String, start: usize, end: usize, mut init_day: u8) -> Self {
         let mut days = Vec::with_capacity(7);
         let mut x = 0;
         while init_day > 0 {
@@ -100,22 +121,34 @@ impl Activity {
 mod tests {
     use super::*;
 
+    impl Activity {
+        fn get_title(&self) -> &str {
+            &self.title
+        }
+    }
+
     #[test]
     fn empty() {
-        let s = Sched::new("Sample".to_string());
-        let empty = Activity::new(0, 0, 0, String::from("Empty"));
+        let s = Schedule::new("Sample".to_string());
+        let empty = Activity::new("empty".to_string(), 0, 0, 0);
         assert!(s.conflicts(empty).is_none());
     }
 
     #[test]
     fn unavailable() {
-        let mut s = Sched::new("Sample".to_string());
-        let x = Activity::new(0b1, 0000, 1200, String::from("Foo"));
-        s.add_activity(x);
-        let y = Activity::new(0b1, 0600, 1400, String::from("Bar"));
-        let res = y.clone();
+        let mut s = Schedule::new("Sample".to_string());
+        let x = Activity::new("Foo".to_string(), 0000, 1200, 0b1);
+        s.add_activity(x.clone());
+        let y = Activity::new("Bar".to_string(), 0600, 1400, 0b1);
         let con = s.conflicts(y);
         assert!(con.is_some());
-        assert!(con.unwrap().contains(&res));
+        let res = con
+            .unwrap()
+            .into_iter()
+            .collect::<Vec<_>>()
+            .get(0)
+            .unwrap()
+            .get_title();
+        assert!(res == "Foo");
     }
 }

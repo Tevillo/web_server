@@ -3,19 +3,26 @@ pub mod elements;
 pub mod home_page;
 pub mod schedule_page;
 pub mod server_page;
-
 use axum::{
     Router,
     routing::{get, post},
 };
 
-pub fn route_pages() -> Router {
+use sled::Db;
+use std::sync::Arc;
+
+const CONFIG: bincode::config::Configuration = bincode::config::standard()
+    .with_little_endian()
+    .with_variable_int_encoding();
+
+pub fn route_pages(db: Arc<Db>) -> Router {
     Router::new()
         .route("/", get(home_page::get))
         .route("/home", get(home_page::get))
         .route("/schedule", get(schedule_page::get))
         .route("/server", get(server_page::get).post(server_page::post))
         .route("/get_servers", post(server_page::get_servers))
+        .with_state(db)
 }
 
 pub fn route_elements() -> Router {

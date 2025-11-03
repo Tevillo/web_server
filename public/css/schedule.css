@@ -29,10 +29,12 @@
 .popup {
     display: none;
     position: absolute;
+    flex-direction: column;
     top: 50vh;
     left: 50vw;
-    width: 60vw;
-    height: 80vh;
+    width: 30vw;
+    min-height: 50vh;
+    max-height: 80vh;
     color: #c0fff4;
     background-color: #444444;
     border-radius: 10px;
@@ -41,17 +43,32 @@
     transform: translate(-50%, -50%);
 }
 
-.popup h1 {
-    position: absolute;
-    top: 10px;
+.popup .title {
+    display: flex;
+    flex-direction: row;
+    max-width: 100%;
+}
+.input-field {
+    background-color: white;
+    color: black;
+    outline: none;
+    border: none;
+    font-size: large;
+    border-radius: 5px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+::placeholder {
+    color: grey;
+    opacity: 1; /* Firefox */
 }
 
 .item_container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 5%;
-    margin-bottom: 5%;
+    min-height: 40vh;
     width: 100%;
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -79,24 +96,81 @@
 }
 
 .arrow {
-    transition: transform 0.3s ease;
+    transition: transform;
     font-size: 20px;
+    margin-right: 10px;
 }
 
 .arrow.rotated {
     transform: rotate(180deg);
+    margin-right: 0px;
+}
+
+.event {
+    align-items: center;
+}
+
+.days {
+    display: flex;
+}
+
+.check_day {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.times {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.start_end {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+}
+
+input[type="time"] {
+    width: 100%;
+    padding: 16px 20px;
+    font-size: 18px;
+    font-family: inherit;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    color: #333;
+}
+
+input[type="time"]:hover {
+    border-color: #667eea;
+    background: white;
+}
+
+input[type="time"]:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
 }
 
 .collapsible-content {
     max-height: 0;
     width: 100%;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-    background-color: #f9f9f9;
+    background-color: #666666;
+    display: none;
+    justify-content: center;
 }
 
 .collapsible-content.open {
     max-height: 500px;
+    display: flex;
 }
 
 .content-inner {
@@ -107,10 +181,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: absolute;
-    bottom: 0;
-    width: 90%;
-    left: 5%;
+    width: 100%;
 }
 
 .buttons button {

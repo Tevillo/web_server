@@ -35,7 +35,5 @@ async fn main() {
 }
 
 fn route_all(db: Arc<Db>) -> Router {
-    database::route_data(db)
-        .merge(front::route_pages())
-        .merge(front::route_elements())
+    front::route_pages(db).merge(front::route_elements())
 }

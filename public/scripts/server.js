@@ -1,7 +1,8 @@
 window.addEventListener("load", loadHandler);
 
 function loadHandler(event) {
-    loadServers();
+    add_event_listeners();
+    // loadServers();
 }
 
 function loadServers() {
